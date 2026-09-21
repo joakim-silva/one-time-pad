@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive offline workshop exploring Soviet-style paper pads, UTF-8 encryption, and the danger of reusing keys.">
+  <title>One-Time Pad / Cipher Workshop</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#workshop">Skip to workshop</a>
+<header class="site-header wrap">
+  <a class="brand" href="#"><span class="brand-icon" aria-hidden="true">⊕</span> CIPHER WORKSHOP</a>
+  <a href="#field-notes">The field notes <span aria-hidden="true">↗</span></a>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="title">
+    <div>
+      <p class="eyebrow">NO. 01 / THE ONE-TIME PAD</p>
+      <h1>A secret.<br>A sheet of numbers.<br><em>One chance to use it.</em></h1>
+      <p class="lede">Explore the arithmetic behind a remarkable cipher. Encode a message, work through the pad, and discover why a key must never be used twice.</p>
+      <div class="hero-tags"><span>WORKS OFFLINE</span><span>HANDS-ON HISTORY</span><span>NO ACCOUNT NEEDED</span></div>
+    </div>
+    <aside class="specimen" aria-label="Example of addition without carrying">
+      <div class="specimen-top"><span>TRAINING SHEET</span><span>001 / DEMO</span></div>
+      <p class="specimen-title" lang="ru">Одноразовый блокнот</p>
+      <p class="specimen-sub">One-time pad</p>
+      <div class="specimen-row"><span>MESSAGE</span><strong>1 2 3 4 5</strong></div>
+      <div class="specimen-row"><span>PAD</span><strong>7 8 5 2 6</strong></div>
+      <div class="specimen-row total"><span>CIPHER</span><strong>8 0 8 6 1</strong></div>
+      <p class="specimen-caption">2 + 8 = 10 → keep the 0.<br>Each column stands on its own.</p>
+      <span class="stamp">EXAMPLE ONLY</span>
+    </aside>
+  </section>
+  <section id="workshop" class="workshop wrap" aria-labelledby="workshop-title">
+    <div class="section-heading"><div><p class="eyebrow">THE INTERACTIVE WORKBENCH</p><h2 id="workshop-title">Follow the message.</h2></div><p>Three ways to see what a key does.</p></div>
+    <div class="tabs" role="tablist" aria-label="Workshop mode">
+      <button id="tab-paper" role="tab" aria-selected="true" aria-controls="panel-paper" data-tab="paper">01 <span>Paper pad</span></button>
+      <button id="tab-bytes" role="tab" aria-selected="false" aria-controls="panel-bytes" tabindex="-1" data-tab="bytes">02 <span>UTF-8 & bits</span></button>
+      <button id="tab-reuse" role="tab" aria-selected="false" aria-controls="panel-reuse" tabindex="-1" data-tab="reuse">03 <span>The reused key</span></button>
+    </div>
+    <noscript><p class="notice">Enable JavaScript to use the workshop. The field notes below remain readable.</p></noscript>
+    <section id="panel-paper" role="tabpanel" aria-labelledby="tab-paper">
+      <div class="panel-intro"><h3>The paper-pad workshop</h3><p>A reconstruction of decimal pad arithmetic, using a small invented character codebook. Soviet systems also used codebooks for words and phrases; this is not an exact historical replica.</p></div>
+      <div class="work-grid">
+        <div class="editor">
+          <div class="card-heading"><span class="eyebrow">01 / PREPARE THE MESSAGE</span><button class="text-button" id="paper-example">Load example</button></div>
+          <label for="paper-format">Input format</label>
+          <select id="paper-format"><option value="text">Russian text → teaching codebook</option><option value="digits">Digits → direct arithmetic</option></select>
+          <label for="paper-message">Your message</label>
+          <textarea id="paper-message" rows="3" maxlength="400" spellcheck="false" aria-describedby="paper-help">ПРИВЕТ, МИР!</textarea>
+          <p class="hint" id="paper-help">Russian letters, spaces and . , ! ? - : ; are supported. Text becomes uppercase; line breaks become spaces. Maximum 200 characters.</p>
+          <div class="readout"><span>ENCODED MESSAGE</span><output id="paper-encoded"></output><small id="paper-count"></small></div>
+          <div class="label-row"><label for="paper-key">Pad digits</label><button id="paper-generate" class="text-button">Generate pad</button></div>
+          <textarea id="paper-key" class="mono" rows="3" maxlength="2000" spellcheck="false" placeholder="Generate a pad, or paste matching digits."></textarea>
+          <p class="hint" id="paper-pad-status">Use a pad with exactly as many digits as the encoded message.</p>
+          <button id="paper-encrypt" class="primary">Encrypt message <span aria-hidden="true">→</span></button>
+          <p id="paper-error" class="error" role="alert"></p>
+          <details><summary>Open the teaching codebook</summary><p class="hint">Two digits per character. The mappings below are invented for this demonstration. A space is 00.</p><div id="codebook" class="codebook"></div></details>
+        </div>
+        <div class="receiver">
+          <p class="eyebrow">02 / RECEIVE & DECRYPT</p><h3>The transmission</h3>
+          <p class="hint">Encryption fills this box. You can also paste ciphertext and enter its matching pad on the left.</p>
+          <label for="paper-cipher">Ciphertext digits</label><textarea id="paper-cipher" class="mono transmission" rows="4" maxlength="2000" spellcheck="false" placeholder="Your encrypted digit groups will appear here."></textarea>
+          <div class="actions"><button id="paper-decrypt" class="secondary">Decrypt with pad</button><button id="paper-save" class="text-button">Save ciphertext</button><button id="paper-save-key" class="text-button">Save pad separately</button></div>
+          <div class="recovered"><span>RECOVERED MESSAGE</span><output id="paper-recovered" aria-live="polite">—</output></div>
+          <p class="hint">The recipient needs the matching secret pad and codebook. Keep the pad separate from the transmission.</p>
+          <div class="math-note"><span>THE RULE</span><p>Encrypt: (message + pad) mod 10<br>Decrypt: (cipher − pad + 10) mod 10</p><small>No carrying. No borrowing between columns.</small></div>
+        </div>
+      </div>
+      <div id="paper-walk" class="walk" hidden></div>
+    </section>
+    <section id="panel-bytes" role="tabpanel" aria-labelledby="tab-bytes" hidden>
+      <div class="panel-intro"><h3>From characters to encrypted bytes</h3><p>A modern companion to the paper model. UTF-8 turns text into bytes; XOR combines each byte with a key byte. Soviet wartime pads did not use UTF-8.</p></div>
+      <div class="work-grid">
+        <div class="editor">
+          <div class="card-heading"><span class="eyebrow">01 / ENCODE & ENCRYPT</span><button id="bytes-example" class="text-button">Load example</button></div>
+          <label for="bytes-message">Your message</label><textarea id="bytes-message" rows="3" maxlength="500" spellcheck="false">Да, hello! 🌍</textarea>
+          <p class="hint">Russian, English, Arabic, emoji—any Unicode text. Up to 500 characters in the input.</p>
+          <div class="readout"><span>UTF-8 BYTES / HEXADECIMAL</span><output id="bytes-encoded"></output><small id="bytes-count"></small></div>
+          <div class="label-row"><label for="bytes-key">Key bytes (hexadecimal)</label><button id="bytes-generate" class="text-button">Generate key</button></div>
+          <textarea id="bytes-key" class="mono" rows="3" maxlength="8000" spellcheck="false" placeholder="For example: 7A 19 C0 03"></textarea>
+          <p class="hint" id="bytes-pad-status">The key needs one byte for every message byte—not every letter.</p>
+          <button id="bytes-encrypt" class="primary">Encrypt bytes <span aria-hidden="true">→</span></button>
+          <p id="bytes-error" class="error" role="alert"></p>
+        </div>
+        <div class="receiver">
+          <p class="eyebrow">02 / RECEIVE & DECRYPT</p><h3>The byte stream</h3>
+          <p class="hint">Ciphertext can contain any byte value. Hexadecimal lets us display it without treating it as text.</p>
+          <label for="bytes-cipher">Ciphertext bytes (hexadecimal)</label><textarea id="bytes-cipher" class="mono transmission" rows="4" maxlength="8000" spellcheck="false" placeholder="Encrypted bytes appear here."></textarea>
+          <div class="actions"><button id="bytes-decrypt" class="secondary">Decrypt with key</button><button id="bytes-save" class="text-button">Save ciphertext</button><button id="bytes-save-key" class="text-button">Save key separately</button></div>
+          <div class="recovered"><span>RECOVERED TEXT</span><output id="bytes-recovered" aria-live="polite">—</output></div>
+          <div class="math-note"><span>THE RULE</span><p>message ⊕ key = ciphertext<br>ciphertext ⊕ key = message</p><small>XOR gives 1 when the input bits differ, and 0 when they match.</small></div>
+        </div>
+      </div>
+      <div id="bytes-walk" class="walk" hidden></div>
+      <details class="byte-reference"><summary>Inspect each character’s Unicode and UTF-8 representation</summary><div class="table-scroll" tabindex="0" role="region" aria-label="Character encoding reference"><table><thead><tr><th>Character</th><th>Unicode</th><th>UTF-8 hex</th><th>UTF-8 binary</th></tr></thead><tbody id="character-rows"></tbody></table></div></details>
+    </section>
+    <section id="panel-reuse" role="tabpanel" aria-labelledby="tab-reuse" hidden>
+      <div class="panel-intro"><h3>What happens when “one-time” becomes twice?</h3><p>This experiment deliberately reuses a key. XOR the two ciphertexts, and their shared key cancels out. A known message can then expose the other.</p></div>
+      <div class="work-grid">
+        <div class="editor">
+          <p class="eyebrow">01 / MAKE THE MISTAKE</p>
+          <label for="reuse-a">Message A</label><input id="reuse-a" value="MEET AT NINE" maxlength="80" spellcheck="false">
+          <label for="reuse-b">Message B</label><input id="reuse-b" value="MEET AT FIVE" maxlength="80" spellcheck="false">
+          <p class="hint">Use messages with the same UTF-8 byte length. Try changing NINE to NOON, for example.</p>
+          <button id="reuse-run" class="primary">Encrypt both with one key →</button>
+          <p id="reuse-error" class="error" role="alert"></p>
+          <div class="math-note"><span>WHY THE KEY DISAPPEARS</span><p>C₁ ⊕ C₂ = M₁ ⊕ M₂</p><small>Because K ⊕ K = 0. This leaks a relationship, not automatically both messages.</small></div>
+        </div>
+        <div class="receiver">
+          <p class="eyebrow">02 / OBSERVE THE LEAK</p><h3>Two intercepted messages</h3>
+          <div class="readout"><span>CIPHERTEXT A</span><output id="reuse-c1">—</output></div>
+          <div class="readout"><span>CIPHERTEXT B</span><output id="reuse-c2">—</output></div>
+          <div class="readout accent"><span>A XOR B / KEY CANCELLED</span><output id="reuse-xor">—</output></div>
+          <button id="reuse-reveal" class="secondary" disabled>Use known message A to recover B</button>
+          <div class="recovered"><span>RECOVERED MESSAGE B</span><output id="reuse-recovered" aria-live="polite">—</output></div>
+          <p id="reuse-explanation" class="hint">Run the experiment to see the ciphertexts.</p>
+        </div>
+      </div>
+    </section>
+    <p class="workshop-foot">A learning instrument, not a secure messenger. Keys and messages stay in this page’s memory unless you download them. Refreshing clears the session.</p>
+  </section>
+  <section id="field-notes" class="notes wrap" aria-labelledby="notes-title">
+    <div class="section-heading"><div><p class="eyebrow">CONTEXT / NOT JUST CALCULATIONS</p><h2 id="notes-title">The field notes.</h2></div><p>Simple arithmetic. Demanding rules.</p></div>
+    <div class="notes-grid">
+      <article><span class="note-number">01</span><h3>What makes it a one-time pad?</h3><p>A true OTP uses a uniformly random, independent secret key as long as the encoded message. Each key position encrypts only one message position. Given a fixed length, the ciphertext alone cannot distinguish between possible plaintexts.</p></article>
+      <article><span class="note-number">02</span><h3>The difficult part is the key.</h3><p>Both correspondents need the same pad in advance, delivered secretly. Sending the key alongside the ciphertext defeats the protection. An OTP also does not authenticate the sender or detect tampering by itself.</p></article>
+      <article><span class="note-number">03</span><h3>The Soviet connection.</h3><p>Soviet systems combined numerical codebooks with random pad numbers. Some pad material was duplicated, helping the American VENONA project recover parts of intercepted communications. VENONA names the codebreaking project, not the Soviet cipher.</p></article>
+    </div>
+    <details class="method"><summary>What this reconstruction does—and where history ends</summary><p>“Одноразовый блокнот” is a Russian descriptive term for a one-time pad, not a verified universal Soviet codename. Our character codebook and visual pad are teaching inventions. The decimal mode demonstrates addition modulo 10; particular historical systems had their own conventions.</p><p>The UTF-8 mode is modern. Generated pads use the browser’s cryptographically strong pseudorandom generator, not a demonstrated source of truly random key material. Therefore this workshop does not claim the perfect secrecy of a theoretical OTP. It blocks exact key reuse for encryption within this session, but does not detect partial overlaps or reuse in other sessions. Decrypting with the matching key is allowed.</p><p>A wrong key can produce plausible text. Successful decoding is not proof that the message is authentic. UTF-8 checks only whether the recovered bytes form valid text.</p></details>
+    <div class="sources"><span class="eyebrow">READ FURTHER</span><a href="https://www.nsa.gov/Portals/70/documents/about/cryptologic-heritage/historical-figures-publications/publications/coldwar/venona_story.pdf" target="_blank" rel="noopener noreferrer">NSA / The VENONA Story ↗</a><a href="https://www.cia.gov/legacy/museum/artifact/one-time-pads/" target="_blank" rel="noopener noreferrer">CIA / One-Time Pads ↗</a><a href="https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues" target="_blank" rel="noopener noreferrer">MDN / Browser randomness ↗</a></div>
+  </section>
+</main>
+<footer class="wrap"><span>ONE-TIME PAD / CIPHER WORKSHOP</span><span>Built to explore. Made to understand.</span></footer>
+</body>
+</html>
